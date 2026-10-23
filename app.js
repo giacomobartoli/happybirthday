@@ -70,3 +70,50 @@ document.getElementById('cake').onclick = () => {
 };
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+(function glitter() {
+  const cv = document.getElementById('sparkle');
+  const ctx = cv.getContext('2d');
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const hues = [330, 290, 200, 45, 170];
+  let w, h, dpr, orbs, stars;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  function setup() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    w = innerWidth; h = innerHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    orbs = Array.from({ length: 26 }, () => ({ x: rnd(0, w), y: rnd(0, h), r: rnd(10, 38), hue: hues[(Math.random() * 5) | 0], vy: rnd(-.12, -.03), a: rnd(.3, .55) }));
+    stars = Array.from({ length: 90 }, () => ({ x: rnd(0, w), y: rnd(0, h), r: rnd(3, 9), p: rnd(0, 6.28), s: rnd(.01, .035), hue: hues[(Math.random() * 5) | 0] }));
+  }
+  function star(x, y, r, a, hue) {
+    ctx.globalAlpha = a;
+    ctx.fillStyle = `hsl(${hue} 100% 97%)`;
+    ctx.shadowColor = `hsl(${hue} 100% 65%)`; ctx.shadowBlur = r * 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r * 2); ctx.quadraticCurveTo(x, y, x + r * 2, y);
+    ctx.quadraticCurveTo(x, y, x, y + r * 2); ctx.quadraticCurveTo(x, y, x - r * 2, y);
+    ctx.quadraticCurveTo(x, y, x, y - r * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+    for (const o of orbs) {
+      if (!still) { o.y += o.vy; if (o.y < -o.r) o.y = h + o.r; }
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0, `hsla(${o.hue},100%,85%,${o.a})`);
+      g.addColorStop(.8, `hsla(${o.hue},100%,80%,${o.a * .7})`);
+      g.addColorStop(1, `hsla(${o.hue},100%,80%,0)`);
+      ctx.globalAlpha = 1; ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, 6.283); ctx.fill();
+    }
+    for (const s of stars) {
+      if (!still) s.p += s.s;
+      star(s.x, s.y, s.r, still ? .7 : .25 + .75 * Math.abs(Math.sin(s.p)), s.hue);
+    }
+    ctx.globalAlpha = 1;
+    if (!still) requestAnimationFrame(frame);
+  }
+  addEventListener('resize', () => { setup(); if (still) frame(); });
+  setup(); frame();
+})();
